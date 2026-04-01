@@ -36,4 +36,4 @@ mod stream;
 
 pub use error::{ProtocolError, StreamError};
 pub use event::{Event, Frame};
-pub use stream::{EventStream, FrameStream};
+pub use stream::{EventStream, Eventsource, FrameStream};
