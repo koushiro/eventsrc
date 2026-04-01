@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "benchmarks",
-    "crates/eventsrc-core",
+    "eventsrc-core",
 ]
 resolver = "3"
 
@@ -13,4 +13,4 @@ license = "Apache-2.0"
 [workspace.dependencies]
 bytes = "1"
 futures-core = "0.3"
-eventsrc-core = { path = "crates/eventsrc-core", version = "0.0.1" }
+eventsrc-core = { path = "eventsrc-core", version = "0.0.1" }
