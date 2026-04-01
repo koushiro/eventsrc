@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "benchmarks",
     "crates/eventsrc-core",
 ]
 resolver = "3"

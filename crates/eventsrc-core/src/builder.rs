@@ -5,7 +5,7 @@ use bytes::{BufMut, Bytes, BytesMut};
 use crate::{
     error::{FieldKind, ProtocolError},
     event::{Event, Frame},
-    parser::RawLine,
+    parser::{RawField, RawLine},
 };
 
 #[derive(Debug, Default)]
@@ -64,16 +64,17 @@ impl EventBuilder {
     pub(crate) fn feed(&mut self, line: RawLine) -> Result<Option<Frame>, ProtocolError> {
         match line {
             RawLine::Empty => Ok(self.dispatch().map(Frame::Event)),
-            RawLine::Comment(_) => Ok(None),
-            RawLine::Field { name, value } => self.feed_field(name, value),
+            RawLine::Comment => Ok(None),
+            RawLine::Field(field) => self.feed_field(field),
         }
     }
 
-    fn feed_field(&mut self, name: Bytes, value: Bytes) -> Result<Option<Frame>, ProtocolError> {
-        match name.as_ref() {
+    fn feed_field(&mut self, field: RawField) -> Result<Option<Frame>, ProtocolError> {
+        match field.name() {
             // If the field name is "event"
             // Set the event type buffer to the field value.
             b"event" => {
+                let value = field.value_bytes();
                 validate_utf8(FieldKind::Event, value.as_ref())?;
                 self.event = Some(value);
                 Ok(None)
@@ -81,6 +82,7 @@ impl EventBuilder {
             // If the field name is "data"
             // Append the field value to the data buffer, then append a single U+000A LINE FEED (LF) character to the data buffer.
             b"data" => {
+                let value = field.value_bytes();
                 validate_utf8(FieldKind::Data, value.as_ref())?;
                 self.data.push(value);
                 Ok(None)
@@ -89,6 +91,7 @@ impl EventBuilder {
             // If the field value does not contain U+0000 NULL, then set the last event ID buffer to the field value.
             // Otherwise, ignore the field.
             b"id" => {
+                let value = field.value_bytes();
                 validate_utf8(FieldKind::Id, value.as_ref())?;
                 if !value.contains(&0) {
                     self.last_event_id = value;
@@ -99,7 +102,7 @@ impl EventBuilder {
             // If the field value consists of only ASCII digits, then interpret the field value as an integer in base ten,
             // and set the event stream's reconnection time to that integer.
             // Otherwise, ignore the field.
-            b"retry" => match parse_retry(value.as_ref()) {
+            b"retry" => match parse_retry(field.value()) {
                 Some(delay) => Ok(Some(Frame::Retry(delay))),
                 None => Ok(None),
             },
@@ -153,24 +156,14 @@ const fn default_event() -> Bytes {
 
 #[cfg(test)]
 mod tests {
-    use std::error::Error as _;
-
     use super::*;
-
-    fn bytes(value: impl AsRef<[u8]>) -> Bytes {
-        Bytes::copy_from_slice(value.as_ref())
-    }
-
-    fn field(name: impl AsRef<[u8]>, value: impl AsRef<[u8]>) -> RawLine {
-        RawLine::Field { name: bytes(name), value: bytes(value) }
-    }
 
     #[test]
     fn data_event_and_id_are_normalized() {
         let mut builder = EventBuilder::default();
 
-        assert!(builder.feed(field("id", "42")).unwrap().is_none());
-        assert!(builder.feed(field("data", "hello")).unwrap().is_none());
+        assert!(builder.feed(RawLine::field("id", "42")).unwrap().is_none());
+        assert!(builder.feed(RawLine::field("data", "hello")).unwrap().is_none());
         let frame = builder.feed(RawLine::Empty).unwrap();
 
         match frame {
@@ -187,8 +180,8 @@ mod tests {
     fn multiline_data_is_joined_with_newlines() {
         let mut builder = EventBuilder::default();
 
-        assert!(builder.feed(field("data", "alpha")).unwrap().is_none());
-        assert!(builder.feed(field("data", "beta")).unwrap().is_none());
+        assert!(builder.feed(RawLine::field("data", "alpha")).unwrap().is_none());
+        assert!(builder.feed(RawLine::field("data", "beta")).unwrap().is_none());
         let frame = builder.feed(RawLine::Empty).unwrap();
 
         match frame {
@@ -201,8 +194,8 @@ mod tests {
     fn event_name_defaults_to_message_when_empty() {
         let mut builder = EventBuilder::default();
 
-        assert!(builder.feed(field("event", "")).unwrap().is_none());
-        assert!(builder.feed(field("data", "payload")).unwrap().is_none());
+        assert!(builder.feed(RawLine::field("event", "")).unwrap().is_none());
+        assert!(builder.feed(RawLine::field("data", "payload")).unwrap().is_none());
         let frame = builder.feed(RawLine::Empty).unwrap();
 
         match frame {
@@ -215,7 +208,7 @@ mod tests {
     fn retry_is_emitted_as_control_frame() {
         let mut builder = EventBuilder::default();
 
-        let frame = builder.feed(field("retry", "1500")).unwrap();
+        let frame = builder.feed(RawLine::field("retry", "1500")).unwrap();
         assert_eq!(frame, Some(Frame::Retry(Duration::from_millis(1500))));
     }
 
@@ -223,15 +216,15 @@ mod tests {
     fn invalid_retry_is_ignored() {
         let mut builder = EventBuilder::default();
 
-        assert!(builder.feed(field("retry", "oops")).unwrap().is_none());
+        assert!(builder.feed(RawLine::field("retry", "oops")).unwrap().is_none());
     }
 
     #[test]
     fn invalid_retry_with_plus_or_whitespace_is_ignored() {
         let mut builder = EventBuilder::default();
 
-        assert!(builder.feed(field("retry", "+1")).unwrap().is_none());
-        assert!(builder.feed(field("retry", "1 ")).unwrap().is_none());
+        assert!(builder.feed(RawLine::field("retry", "+1")).unwrap().is_none());
+        assert!(builder.feed(RawLine::field("retry", "1 ")).unwrap().is_none());
     }
 
     #[test]
@@ -239,7 +232,7 @@ mod tests {
         let mut builder = EventBuilder::default();
 
         builder.set_last_event_id("42");
-        assert!(builder.feed(field("id", "bad\0id")).unwrap().is_none());
+        assert!(builder.feed(RawLine::field("id", "bad\0id")).unwrap().is_none());
         assert_eq!(builder.last_event_id(), "42");
     }
 
@@ -247,8 +240,10 @@ mod tests {
     fn invalid_utf8_in_data_is_a_protocol_error() {
         let mut builder = EventBuilder::default();
 
-        let error = builder.feed(field("data", Bytes::from_static(&[0xff]))).unwrap_err();
+        let error = builder.feed(RawLine::field("data", Bytes::from_static(&[0xff]))).unwrap_err();
         assert!(error.to_string().contains("invalid UTF-8 in SSE data field"));
+
+        use std::error::Error as _;
         assert!(error.source().is_some());
     }
 
@@ -256,7 +251,7 @@ mod tests {
     fn empty_dispatch_without_data_produces_no_event() {
         let mut builder = EventBuilder::default();
 
-        assert!(builder.feed(field("event", "update")).unwrap().is_none());
+        assert!(builder.feed(RawLine::field("event", "update")).unwrap().is_none());
         assert!(builder.feed(RawLine::Empty).unwrap().is_none());
     }
 }

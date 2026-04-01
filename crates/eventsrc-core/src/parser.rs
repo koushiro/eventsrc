@@ -10,8 +10,75 @@ const SPACE: u8 = b' ';
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum RawLine {
     Empty,
-    Comment(Bytes),
-    Field { name: Bytes, value: Bytes },
+    Comment,
+    Field(RawField),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct RawField {
+    line: Bytes,
+    name_len: usize,
+    value_start: usize,
+}
+
+impl RawField {
+    #[inline]
+    pub(crate) fn name(&self) -> &[u8] {
+        &self.line[..self.name_len]
+    }
+
+    #[inline]
+    pub(crate) fn value(&self) -> &[u8] {
+        &self.line[self.value_start..]
+    }
+
+    #[inline]
+    pub(crate) fn value_bytes(&self) -> Bytes {
+        self.line.slice(self.value_start..)
+    }
+}
+
+#[cfg(test)]
+impl RawLine {
+    pub(crate) fn field(name: impl AsRef<[u8]>, value: impl AsRef<[u8]>) -> Self {
+        let name = name.as_ref();
+        let value = value.as_ref();
+
+        let (line, value_start) = if value.is_empty() {
+            let mut line = Vec::with_capacity(name.len() + 1);
+            line.extend_from_slice(name);
+            line.push(b':');
+            (line, name.len() + 1)
+        } else {
+            let mut line = Vec::with_capacity(name.len() + 2 + value.len());
+            line.extend_from_slice(name);
+            line.extend_from_slice(b": ");
+            line.extend_from_slice(value);
+            (line, name.len() + 2)
+        };
+
+        Self::Field(RawField {
+            line: Bytes::copy_from_slice(&line),
+            name_len: name.len(),
+            value_start,
+        })
+    }
+
+    pub(crate) fn raw_field(
+        raw: impl AsRef<[u8]>,
+        name: impl AsRef<[u8]>,
+        value: impl AsRef<[u8]>,
+    ) -> Self {
+        let raw = raw.as_ref();
+        let name = name.as_ref();
+        let value = value.as_ref();
+
+        Self::Field(RawField {
+            line: Bytes::copy_from_slice(raw),
+            name_len: name.len(),
+            value_start: raw.len() - value.len(),
+        })
+    }
 }
 
 #[derive(Debug)]
@@ -95,7 +162,7 @@ fn find_line_boundary(bytes: &[u8]) -> Option<(usize, usize)> {
 
 // Parse a fully delimited SSE line:
 // - `:...` becomes a comment
-// - `field: value` strips one optional leading space from the value
+// - `field: value` stores a raw field view over the original line
 // - `field` is treated as an empty value
 fn parse_line(line: Bytes) -> RawLine {
     if line.is_empty() {
@@ -103,37 +170,21 @@ fn parse_line(line: Bytes) -> RawLine {
     }
 
     match memchr(COLON, line.as_ref()) {
-        Some(0) => RawLine::Comment(line.slice(1..)),
+        Some(0) => RawLine::Comment,
         Some(pos) => {
-            let name = line.slice(..pos);
-            let value = {
-                if line.get(pos + 1) == Some(&SPACE) {
-                    line.slice(pos + 2..)
-                } else {
-                    line.slice(pos + 1..)
-                }
-            };
-            RawLine::Field { name, value }
+            let value_start = if line.get(pos + 1) == Some(&SPACE) { pos + 2 } else { pos + 1 };
+            RawLine::Field(RawField { line, name_len: pos, value_start })
         },
-        None => RawLine::Field { name: line, value: Bytes::new() },
+        None => {
+            let len = line.len();
+            RawLine::Field(RawField { line, name_len: len, value_start: len })
+        },
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn bytes(value: impl AsRef<[u8]>) -> Bytes {
-        Bytes::copy_from_slice(value.as_ref())
-    }
-
-    fn field(name: impl AsRef<[u8]>, value: impl AsRef<[u8]>) -> RawLine {
-        RawLine::Field { name: bytes(name), value: bytes(value) }
-    }
-
-    fn comment(value: impl AsRef<[u8]>) -> RawLine {
-        RawLine::Comment(bytes(value))
-    }
 
     fn parse_chunk(chunk: impl AsRef<[u8]>) -> Vec<RawLine> {
         let mut parser = Parser::new();
@@ -158,39 +209,45 @@ mod tests {
 
     #[test]
     fn parses_comment_line_starting_with_colon() {
-        assert_eq!(parse_chunk(b": keepalive\n"), vec![comment(" keepalive")]);
+        assert_eq!(parse_chunk(b": keepalive\n"), vec![RawLine::Comment]);
     }
 
     #[test]
     fn parses_field_without_colon_as_empty_value() {
-        assert_eq!(parse_chunk(b"event\n"), vec![field("event", "")]);
+        assert_eq!(parse_chunk(b"event\n"), vec![RawLine::raw_field("event", "event", "")]);
     }
 
     #[test]
     fn parses_field_with_empty_value_after_colon() {
-        assert_eq!(parse_chunk(b"event:\n"), vec![field("event", "")]);
+        assert_eq!(parse_chunk(b"event:\n"), vec![RawLine::field("event", "")]);
     }
 
     #[test]
     fn strips_one_optional_space_after_colon() {
-        assert_eq!(parse_chunk(b"data: hello\n"), vec![field("data", "hello")]);
+        assert_eq!(parse_chunk(b"data: hello\n"), vec![RawLine::field("data", "hello")]);
     }
 
     #[test]
     fn preserves_additional_space_after_optional_space() {
-        assert_eq!(parse_chunk(b"data:  hello\n"), vec![field("data", " hello")]);
+        assert_eq!(
+            parse_chunk(b"data:  hello\n"),
+            vec![RawLine::raw_field("data:  hello", "data", " hello")]
+        );
     }
 
     #[test]
     fn preserves_bytes_without_utf8_validation() {
-        assert_eq!(parse_chunk(b"\xff: \xfe\n"), vec![field(b"\xff", b"\xfe")]);
+        assert_eq!(
+            parse_chunk(b"\xff: \xfe\n"),
+            vec![RawLine::raw_field(b"\xff: \xfe", b"\xff", b"\xfe")]
+        );
     }
 
     #[test]
     fn parses_multiple_complete_lines_in_order() {
         assert_eq!(
             parse_chunk(b": keepalive\n\ndata: hello\n"),
-            vec![comment(" keepalive"), RawLine::Empty, field("data", "hello")]
+            vec![RawLine::Comment, RawLine::Empty, RawLine::field("data", "hello")]
         );
     }
 
@@ -202,7 +259,7 @@ mod tests {
         assert!(parser.next().is_none());
 
         parser.push(b"ta: hello\n");
-        assert_eq!(parser.next(), Some(field("data", "hello")));
+        assert_eq!(parser.next(), Some(RawLine::field("data", "hello")));
     }
 
     #[test]
@@ -210,9 +267,9 @@ mod tests {
         let mut parser = Parser::new();
 
         parser.push(b"data: lf\ndata: crlf\r\ndata: lone-cr\rx");
-        assert_eq!(parser.next(), Some(field("data", "lf")));
-        assert_eq!(parser.next(), Some(field("data", "crlf")));
-        assert_eq!(parser.next(), Some(field("data", "lone-cr")));
+        assert_eq!(parser.next(), Some(RawLine::field("data", "lf")));
+        assert_eq!(parser.next(), Some(RawLine::field("data", "crlf")));
+        assert_eq!(parser.next(), Some(RawLine::field("data", "lone-cr")));
         assert_eq!(parser.next(), None);
     }
 
@@ -243,7 +300,7 @@ mod tests {
         chunk.extend_from_slice(b"data: hello\n");
         parser.push(&chunk);
 
-        assert_eq!(parser.next(), Some(field("data", "hello")));
+        assert_eq!(parser.next(), Some(RawLine::field("data", "hello")));
     }
 
     #[test]
@@ -251,12 +308,15 @@ mod tests {
         let mut parser = Parser::new();
 
         parser.push(b"data: one\n");
-        assert_eq!(parser.next(), Some(field("data", "one")));
+        assert_eq!(parser.next(), Some(RawLine::field("data", "one")));
 
         let mut chunk = BOM.to_vec();
         chunk.extend_from_slice(b"data: two\n");
         parser.push(&chunk);
 
-        assert_eq!(parser.next(), Some(field(b"\xEF\xBB\xBFdata", "two")));
+        assert_eq!(
+            parser.next(),
+            Some(RawLine::raw_field(b"\xEF\xBB\xBFdata: two", b"\xEF\xBB\xBFdata", "two"))
+        );
     }
 }
