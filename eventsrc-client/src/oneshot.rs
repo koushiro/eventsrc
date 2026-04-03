@@ -6,7 +6,7 @@ use std::{
 };
 
 use eventsrc_core::{Event, EventStream};
-use futures_core::stream::Stream;
+use futures_core::stream::{LocalBoxStream, Stream};
 
 use crate::error::Error;
 
@@ -44,7 +44,7 @@ where
     }
 }
 
-type BoxEventStream = Pin<Box<dyn Stream<Item = Result<Event, Error>> + 'static>>;
+type BoxEventStream = LocalBoxStream<'static, Result<Event, Error>>;
 
 /// One-shot SSE event source backed by a single body stream.
 pub struct EventSource {

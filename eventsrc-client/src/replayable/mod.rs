@@ -17,9 +17,7 @@ mod retry;
 
 pub use self::{
     connector::{BoxBodyStream, ConnectFuture, Connector},
-    retry::{
-        ConstantBackoff, ExponentialBackoff, NeverRetry, RetryCause, RetryContext, RetryPolicy,
-    },
+    retry::*,
 };
 use crate::error::{Error, ErrorKind};
 
@@ -193,11 +191,11 @@ impl Stream for EventSource {
                         this.state = ConnectionState::Streaming(Box::pin(stream));
                     },
                     Poll::Ready(Err(err)) => {
-                        if let ErrorKind::Transport = err.kind() {
-                            if this.schedule_reconnect(RetryCause::ConnectError) {
-                                scheduled_reconnect = true;
-                                continue;
-                            }
+                        if err.kind() == ErrorKind::Transport
+                            && this.schedule_reconnect(RetryCause::ConnectError)
+                        {
+                            scheduled_reconnect = true;
+                            continue;
                         }
                         return Poll::Ready(Some(Err(err)));
                     },
@@ -228,7 +226,7 @@ impl Stream for EventSource {
                             continue;
                         }
 
-                        return Poll::Ready(Some(Err(error.into())));
+                        return Poll::Ready(Some(Err(error)));
                     },
                     Poll::Ready(None) => {
                         this.update_last_event_id_from_stream(&stream);
