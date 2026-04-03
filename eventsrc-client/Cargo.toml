@@ -1,0 +1,23 @@
+[package]
+name = "eventsrc-client"
+version = "0.0.1"
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["reqwest"]
+reqwest = ["dep:reqwest"]
+
+[dependencies]
+anyhow = "1"
+backon = { version = "1", default-features = false, features = ["std", "tokio-sleep"] }
+bytes = { workspace = true }
+eventsrc-core = { workspace = true }
+futures-core = { workspace = true }
+reqwest = { version = "0.13", features = ["stream"], optional = true }
+tokio = { version = "1", features = ["time"] }
+
+[dev-dependencies]
+futures-util = { workspace = true }
+http = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "test-util", "time"] }

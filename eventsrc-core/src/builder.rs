@@ -80,7 +80,8 @@ impl EventBuilder {
                 Ok(None)
             },
             // If the field name is "data"
-            // Append the field value to the data buffer, then append a single U+000A LINE FEED (LF) character to the data buffer.
+            // Append the field value to the data buffer, then append a single U+000A LINE FEED (LF)
+            // character to the data buffer.
             b"data" => {
                 let value = field.value_bytes();
                 validate_utf8(FieldKind::Data, value.as_ref())?;
@@ -88,8 +89,8 @@ impl EventBuilder {
                 Ok(None)
             },
             // If the field name is "id"
-            // If the field value does not contain U+0000 NULL, then set the last event ID buffer to the field value.
-            // Otherwise, ignore the field.
+            // If the field value does not contain U+0000 NULL, then set the last event ID buffer to
+            // the field value. Otherwise, ignore the field.
             b"id" => {
                 let value = field.value_bytes();
                 validate_utf8(FieldKind::Id, value.as_ref())?;
@@ -99,8 +100,8 @@ impl EventBuilder {
                 Ok(None)
             },
             // If the field name is "retry"
-            // If the field value consists of only ASCII digits, then interpret the field value as an integer in base ten,
-            // and set the event stream's reconnection time to that integer.
+            // If the field value consists of only ASCII digits, then interpret the field value as
+            // an integer in base ten, and set the event stream's reconnection time to that integer.
             // Otherwise, ignore the field.
             b"retry" => match parse_retry(field.value()) {
                 Some(delay) => Ok(Some(Frame::Retry(delay))),
