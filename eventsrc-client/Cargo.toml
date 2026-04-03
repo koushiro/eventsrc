@@ -1,8 +1,19 @@
 [package]
 name = "eventsrc-client"
-version = "0.0.1"
+version = "0.0.0"
+authors = ["Qinxuan Chen <https://github.com/koushiro>"]
+description = "One-shot and replayable SSE / EventSource client for Rust."
+keywords = ["sse", "eventsource", "stream", "client"]
+documentation = "https://docs.rs/eventsrc-client"
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
 default = ["reqwest"]

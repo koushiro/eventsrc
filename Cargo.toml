@@ -11,6 +11,8 @@ resolver = "3"
 edition = "2024"
 rust-version = "1.85.0"
 license = "Apache-2.0"
+homepage = "https://github.com/koushiro/eventsrc"
+repository = "https://github.com/koushiro/eventsrc"
 
 [workspace.dependencies]
 bytes = "1"
@@ -18,5 +20,5 @@ futures-core = "0.3"
 futures-util = "0.3"
 pin-project-lite = "0.2"
 
-eventsrc-client = { path = "eventsrc-client", version = "0.0.1", default-features = false }
-eventsrc-core = { path = "eventsrc-core", version = "0.0.1" }
+eventsrc-client = { path = "eventsrc-client", version = "0.0.0", default-features = false }
+eventsrc-core = { path = "eventsrc-core", version = "0.0.0" }
