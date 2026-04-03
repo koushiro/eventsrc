@@ -1,6 +1,6 @@
 [package]
 name = "eventsrc-client"
-version = "0.0.0"
+version = "0.0.1"
 authors = ["Qinxuan Chen <https://github.com/koushiro>"]
 description = "One-shot and replayable SSE / EventSource client for Rust."
 keywords = ["sse", "eventsource", "stream", "client"]
