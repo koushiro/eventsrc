@@ -1,6 +1,6 @@
 # NOTE: This repo is not a Cargo workspace; cargo-release won't auto-read this file
 # unless you pass it explicitly. Before releasing, confirm config like below:
-# `cargo release config Cargo.toml -c release.toml`
+# `cargo release config --manifest-path Cargo.toml -c release.toml`
 push-remote = "origin"
 allow-branch = ["main"]
 consolidate-commits = false
