@@ -1,6 +1,6 @@
 [package]
 name = "eventsrc"
-version = "0.0.0"
+version = "0.0.1"
 authors = ["Qinxuan Chen <https://github.com/koushiro>"]
 description = "A protocol-correct, transport-agnostic, SDK-friendly EventSource client for Rust."
 keywords = ["sse", "eventsource", "stream", "client"]
