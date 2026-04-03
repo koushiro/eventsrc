@@ -1,5 +1,17 @@
 # eventsrc
 
+[![](https://github.com/koushiro/eventsrc/actions/workflows/ci.yml/badge.svg)][actions]
+[![](https://img.shields.io/docsrs/eventsrc)][docs.rs]
+[![](https://img.shields.io/crates/v/eventsrc)][crates.io]
+[![](https://img.shields.io/crates/l/eventsrc)][crates.io]
+[![](https://img.shields.io/crates/d/eventsrc)][crates.io]
+[![](https://img.shields.io/badge/MSRV-1.85.0-green?logo=rust)][whatrustisit]
+
+[actions]: https://github.com/koushiro/eventsrc/actions
+[docs.rs]: https://docs.rs/eventsrc
+[crates.io]: https://crates.io/crates/eventsrc
+[whatrustisit]: https://www.whatrustisit.com
+
 A protocol-correct SSE / EventSource client for Rust, with explicit one-shot and replayable modes.
 
 ## Overview
