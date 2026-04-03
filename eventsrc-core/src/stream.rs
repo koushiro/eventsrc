@@ -13,29 +13,6 @@ use crate::{
     parser::Parser,
 };
 
-/// Main entrypoint for creating [`Frame`] and [`Event`] streams.
-pub trait Eventsource: Sized {
-    /// Create a frame stream from a stream of bytes
-    fn frames(self) -> FrameStream<Self>;
-
-    /// Create an event stream from a stream of bytes
-    fn events(self) -> EventStream<Self>;
-}
-
-impl<S, B, E> Eventsource for S
-where
-    S: Stream<Item = Result<B, E>>,
-    B: AsRef<[u8]>,
-{
-    fn frames(self) -> FrameStream<Self> {
-        FrameStream::new(self)
-    }
-
-    fn events(self) -> EventStream<Self> {
-        EventStream::new(self)
-    }
-}
-
 pin_project! {
     /// A protocol-level SSE stream that yields [`Frame`] values.
     #[derive(Debug)]
@@ -128,6 +105,22 @@ where
     }
 }
 
+/// Main entrypoint for creating an [`Frame`] stream.
+pub trait FrameStreamExt: Sized {
+    /// Create an frame stream from a stream of bytes
+    fn frame_stream(self) -> FrameStream<Self>;
+}
+
+impl<S, B, E> FrameStreamExt for S
+where
+    S: Stream<Item = Result<B, E>>,
+    B: AsRef<[u8]>,
+{
+    fn frame_stream(self) -> FrameStream<Self> {
+        FrameStream::new(self)
+    }
+}
+
 pin_project! {
     /// An event-only SSE stream built on top of [`FrameStream`].
     #[derive(Debug)]
@@ -182,13 +175,30 @@ where
     }
 }
 
+/// Main entrypoint for creating an [`Event`] stream.
+pub trait EventStreamExt: Sized {
+    /// Create an event stream from a stream of bytes
+    fn event_stream(self) -> EventStream<Self>;
+}
+
+impl<S, B, E> EventStreamExt for S
+where
+    S: Stream<Item = Result<B, E>>,
+    B: AsRef<[u8]>,
+{
+    fn event_stream(self) -> EventStream<Self> {
+        EventStream::new(self)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{convert::Infallible, error::Error as _, io, time::Duration};
 
-    use super::*;
     use bytes::Bytes;
     use futures_util::{FutureExt, StreamExt, stream};
+
+    use super::*;
 
     fn bytes(value: impl AsRef<[u8]>) -> Bytes {
         Bytes::copy_from_slice(value.as_ref())
