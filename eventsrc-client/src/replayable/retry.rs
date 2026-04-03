@@ -13,6 +13,7 @@
 //! - [`ConstantBackoff`] for a fixed reconnect delay
 //! - [`ExponentialBackoff`] for failure-sensitive backoff
 //! - [`NeverRetry`] to stop reconnecting entirely
+
 use std::{fmt::Debug, time::Duration};
 
 use backon::{BackoffBuilder, ConstantBuilder, ExponentialBuilder};
