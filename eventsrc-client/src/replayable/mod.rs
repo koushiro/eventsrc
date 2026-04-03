@@ -191,7 +191,7 @@ impl Stream for EventSource {
                         this.state = ConnectionState::Streaming(Box::pin(stream));
                     },
                     Poll::Ready(Err(err)) => {
-                        if let ErrorKind::Transport = err.kind()
+                        if err.kind() == ErrorKind::Transport
                             && this.schedule_reconnect(RetryCause::ConnectError)
                         {
                             scheduled_reconnect = true;
