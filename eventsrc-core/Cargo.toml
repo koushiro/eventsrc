@@ -1,6 +1,6 @@
 [package]
 name = "eventsrc-core"
-version = "0.0.0"
+version = "0.0.1"
 authors = ["Qinxuan Chen <https://github.com/koushiro>"]
 description = "Transport-agnostic SSE protocol parsing and stream adapters for Rust."
 keywords = ["sse", "eventsource", "stream", "parser"]
