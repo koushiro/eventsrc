@@ -1,4 +1,4 @@
-use std::{str, time::Duration};
+use core::{str, time::Duration};
 
 use bytes::Bytes;
 

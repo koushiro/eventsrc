@@ -1,4 +1,4 @@
-use std::{mem, str, time::Duration};
+use core::{mem, str, time::Duration};
 
 use bytes::{BufMut, Bytes, BytesMut};
 
