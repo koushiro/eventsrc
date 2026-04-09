@@ -1,4 +1,4 @@
-use std::{
+use core::{
     pin::Pin,
     task::{Context, Poll},
 };
@@ -193,7 +193,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{convert::Infallible, error::Error as _, io, time::Duration};
+    use alloc::{string::ToString, vec, vec::Vec};
+    use core::{convert::Infallible, error::Error as _, time::Duration};
+    use std::io;
 
     use bytes::Bytes;
     use futures_util::{FutureExt, StreamExt, stream};

@@ -1,4 +1,4 @@
-use std::{error::Error as StdError, fmt, str::Utf8Error};
+use core::{error, fmt, str::Utf8Error};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum FieldKind {
@@ -38,8 +38,8 @@ impl fmt::Display for ProtocolError {
     }
 }
 
-impl StdError for ProtocolError {
-    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+impl error::Error for ProtocolError {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         Some(&self.source)
     }
 }
@@ -71,11 +71,11 @@ where
     }
 }
 
-impl<E> StdError for StreamError<E>
+impl<E> error::Error for StreamError<E>
 where
-    E: StdError + 'static,
+    E: error::Error + 'static,
 {
-    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
             Self::Source(error) => Some(error),
             Self::Protocol(error) => Some(error),
