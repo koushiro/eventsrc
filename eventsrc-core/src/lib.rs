@@ -29,6 +29,11 @@
 #![deny(missing_docs)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
+extern crate alloc;
+
+#[cfg(test)]
+extern crate std;
+
 mod builder;
 mod error;
 mod event;

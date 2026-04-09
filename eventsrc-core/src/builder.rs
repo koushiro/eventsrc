@@ -239,12 +239,13 @@ mod tests {
 
     #[test]
     fn invalid_utf8_in_data_is_a_protocol_error() {
+        use alloc::string::ToString;
+        use core::error::Error as _;
+
         let mut builder = EventBuilder::default();
 
         let error = builder.feed(RawLine::field("data", Bytes::from_static(&[0xff]))).unwrap_err();
         assert!(error.to_string().contains("invalid UTF-8 in SSE data field"));
-
-        use std::error::Error as _;
         assert!(error.source().is_some());
     }
 

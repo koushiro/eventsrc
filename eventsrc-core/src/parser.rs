@@ -38,49 +38,6 @@ impl RawField {
     }
 }
 
-#[cfg(test)]
-impl RawLine {
-    pub(crate) fn field(name: impl AsRef<[u8]>, value: impl AsRef<[u8]>) -> Self {
-        let name = name.as_ref();
-        let value = value.as_ref();
-
-        let (line, value_start) = if value.is_empty() {
-            let mut line = Vec::with_capacity(name.len() + 1);
-            line.extend_from_slice(name);
-            line.push(b':');
-            (line, name.len() + 1)
-        } else {
-            let mut line = Vec::with_capacity(name.len() + 2 + value.len());
-            line.extend_from_slice(name);
-            line.extend_from_slice(b": ");
-            line.extend_from_slice(value);
-            (line, name.len() + 2)
-        };
-
-        Self::Field(RawField {
-            line: Bytes::copy_from_slice(&line),
-            name_len: name.len(),
-            value_start,
-        })
-    }
-
-    pub(crate) fn raw_field(
-        raw: impl AsRef<[u8]>,
-        name: impl AsRef<[u8]>,
-        value: impl AsRef<[u8]>,
-    ) -> Self {
-        let raw = raw.as_ref();
-        let name = name.as_ref();
-        let value = value.as_ref();
-
-        Self::Field(RawField {
-            line: Bytes::copy_from_slice(raw),
-            name_len: name.len(),
-            value_start: raw.len() - value.len(),
-        })
-    }
-}
-
 #[derive(Debug)]
 pub(crate) struct Parser {
     buf: BytesMut,
@@ -184,7 +141,51 @@ fn parse_line(line: Bytes) -> RawLine {
 
 #[cfg(test)]
 mod tests {
+    use alloc::{vec, vec::Vec};
+
     use super::*;
+
+    impl RawLine {
+        pub(crate) fn field(name: impl AsRef<[u8]>, value: impl AsRef<[u8]>) -> Self {
+            let name = name.as_ref();
+            let value = value.as_ref();
+
+            let (line, value_start) = if value.is_empty() {
+                let mut line = Vec::with_capacity(name.len() + 1);
+                line.extend_from_slice(name);
+                line.push(b':');
+                (line, name.len() + 1)
+            } else {
+                let mut line = Vec::with_capacity(name.len() + 2 + value.len());
+                line.extend_from_slice(name);
+                line.extend_from_slice(b": ");
+                line.extend_from_slice(value);
+                (line, name.len() + 2)
+            };
+
+            Self::Field(RawField {
+                line: Bytes::copy_from_slice(&line),
+                name_len: name.len(),
+                value_start,
+            })
+        }
+
+        pub(crate) fn raw_field(
+            raw: impl AsRef<[u8]>,
+            name: impl AsRef<[u8]>,
+            value: impl AsRef<[u8]>,
+        ) -> Self {
+            let raw = raw.as_ref();
+            let name = name.as_ref();
+            let value = value.as_ref();
+
+            Self::Field(RawField {
+                line: Bytes::copy_from_slice(raw),
+                name_len: name.len(),
+                value_start: raw.len() - value.len(),
+            })
+        }
+    }
 
     fn parse_chunk(chunk: impl AsRef<[u8]>) -> Vec<RawLine> {
         let mut parser = Parser::new();
