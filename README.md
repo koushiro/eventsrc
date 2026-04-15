@@ -12,27 +12,24 @@
 [crates.io]: https://crates.io/crates/eventsrc
 [whatrustisit]: https://www.whatrustisit.com
 
-A protocol-correct SSE / EventSource client for Rust, with explicit one-shot and replayable modes.
+A protocol-correct SSE / EventSource implementation for Rust, split into a transport-agnostic protocol crate and an explicit client crate.
 
 ## Overview
 
-`eventsrc` is organized as a small workspace rather than a single crate:
+`eventsrc` is organized as a small workspace with two public crates:
 
 - `eventsrc`
-  - facade crate
-  - re-exports the public API from `eventsrc-core` and `eventsrc-client`
-- `eventsrc-core`
   - transport-agnostic SSE protocol parsing
   - exposes `FrameStream<S>` and `EventStream<S>`
 - `eventsrc-client`
   - client-facing one-shot and replayable modes
   - owns reconnect, request replay, backend adapter boundaries, and retry
 
-This split keeps protocol logic separate from HTTP client integration.
+This split keeps protocol logic separate from HTTP client integration. There is no facade crate.
 
 ## Two Explicit Modes
 
-The public API keeps two lifecycle models separate:
+The `eventsrc-client` public API keeps two lifecycle models separate:
 
 - `oneshot::EventSource`
   - consumes one accepted body stream
@@ -44,17 +41,40 @@ The public API keeps two lifecycle models separate:
   - applies retry policy
   - intended for classic EventSource-style subscriptions
 
-## Usage
+## Protocol Usage
 
-The examples below assume:
+Use `eventsrc` when you already have a byte stream and only need SSE protocol parsing.
 
+```rust
+use std::convert::Infallible;
+
+use bytes::Bytes;
+use eventsrc::EventStream;
+use futures_util::{stream, StreamExt};
+
+# async fn demo() -> Result<(), eventsrc::StreamError<Infallible>> {
+let chunks = stream::iter([Ok::<Bytes, Infallible>(Bytes::from_static(b"data: hello\n\n"))]);
+let mut stream = EventStream::new(chunks);
+
+let event = stream.next().await.unwrap()?;
+assert_eq!(event.event(), "message");
+assert_eq!(event.data(), "hello");
+# Ok(())
+# }
+```
+
+## Client Usage
+
+The client examples below assume:
+
+- the `eventsrc-client` crate is used
 - the default `reqwest` feature is enabled
 - a Tokio runtime is available
 
 ### One-Shot Streaming
 
 ```rust
-use eventsrc::oneshot::EventSourceExt as _;
+use eventsrc_client::oneshot::EventSourceExt as _;
 use futures_util::StreamExt;
 
 #[tokio::main]
@@ -78,7 +98,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### Replayable Streaming
 
 ```rust
-use eventsrc::replayable::{ConstantBackoff, EventSourceExt as _};
+use eventsrc_client::replayable::{ConstantBackoff, EventSourceExt as _};
 use futures_util::StreamExt;
 use std::time::Duration;
 
@@ -98,7 +118,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-See [documentation](https://docs.rs/eventsrc) for more details.
+See [`eventsrc`](https://docs.rs/eventsrc) and
+[`eventsrc-client`](https://docs.rs/eventsrc-client) documentation for more details.
 
 ## Performance
 

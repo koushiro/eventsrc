@@ -8,7 +8,7 @@ use std::{
     time::Duration,
 };
 
-use eventsrc_core::{Event, Frame, FrameStream, StreamError};
+use eventsrc::{Event, Frame, FrameStream, StreamError};
 use futures_core::Stream;
 use tokio::time;
 
@@ -182,9 +182,10 @@ impl Stream for EventSource {
                     },
                     Poll::Ready(Ok(body)) => {
                         let stream = match this.last_event_id.as_deref() {
-                            Some(last_event_id) => eventsrc_core::FrameStream::new(body)
-                                .with_last_event_id(last_event_id),
-                            None => eventsrc_core::FrameStream::new(body),
+                            Some(last_event_id) => {
+                                eventsrc::FrameStream::new(body).with_last_event_id(last_event_id)
+                            },
+                            None => eventsrc::FrameStream::new(body),
                         };
 
                         this.consecutive_failures = 0;

@@ -67,7 +67,7 @@ pub async fn consume_sseer(chunks: Vec<Bytes>) -> ConsumeStats {
 pub async fn consume_eventsrc(chunks: Vec<Bytes>) -> ConsumeStats {
     let stream = stream::iter(chunks.into_iter().map(Ok::<_, Infallible>));
 
-    let mut stream = eventsrc_core::EventStream::new(stream);
+    let mut stream = eventsrc::EventStream::new(stream);
 
     let mut stats = ConsumeStats { events: 0, score: 0 };
 

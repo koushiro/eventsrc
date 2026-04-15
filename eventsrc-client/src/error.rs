@@ -165,8 +165,8 @@ impl error::Error for Error {
     }
 }
 
-impl From<eventsrc_core::ProtocolError> for Error {
-    fn from(err: eventsrc_core::ProtocolError) -> Self {
+impl From<eventsrc::ProtocolError> for Error {
+    fn from(err: eventsrc::ProtocolError) -> Self {
         Self {
             kind: ErrorKind::Protocol,
             message: Cow::Owned(err.to_string()),
@@ -176,19 +176,19 @@ impl From<eventsrc_core::ProtocolError> for Error {
     }
 }
 
-impl<E> From<eventsrc_core::StreamError<E>> for Error
+impl<E> From<eventsrc::StreamError<E>> for Error
 where
     E: error::Error + Send + Sync + 'static,
 {
-    fn from(err: eventsrc_core::StreamError<E>) -> Self {
+    fn from(err: eventsrc::StreamError<E>) -> Self {
         match err {
-            eventsrc_core::StreamError::Source(e) => Self {
+            eventsrc::StreamError::Source(e) => Self {
                 kind: ErrorKind::InvalidResponse,
                 message: "invalid response body stream error".into(),
                 context: Vec::new(),
                 source: Some(anyhow::Error::new(e).into_error_source()),
             },
-            eventsrc_core::StreamError::Protocol(e) => Self {
+            eventsrc::StreamError::Protocol(e) => Self {
                 kind: ErrorKind::Protocol,
                 message: Cow::Owned(e.to_string()),
                 context: Vec::new(),

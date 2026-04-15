@@ -6,11 +6,11 @@ license.workspace = true
 publish = false
 
 [dev-dependencies]
-bytes = "1"
+bytes = { workspace = true }
 criterion = "0.8"
 eventsource-stream = "0.2"
-eventsrc-core = { workspace = true }
-futures-util = "0.3"
+eventsrc = { workspace = true }
+futures-util = { workspace = true }
 http = "1"
 sseer = { version = "0.2", features = ["std"] }
 tokio = { version = "1", features = ["macros", "rt", "time"] }

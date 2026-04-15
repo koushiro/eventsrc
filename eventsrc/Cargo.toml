@@ -2,8 +2,8 @@
 name = "eventsrc"
 version = "0.0.1"
 authors = ["Qinxuan Chen <https://github.com/koushiro>"]
-description = "A protocol-correct, transport-agnostic, SDK-friendly EventSource client for Rust."
-keywords = ["sse", "eventsource", "stream", "client"]
+description = "Transport-agnostic SSE protocol parsing and stream adapters for Rust."
+keywords = ["sse", "eventsource", "stream", "parser", "no_std"]
 documentation = "https://docs.rs/eventsrc"
 readme = "../README.md"
 edition.workspace = true
@@ -16,10 +16,11 @@ repository.workspace = true
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
-[features]
-default = ["reqwest"]
-reqwest = ["eventsrc-client/reqwest"]
-
 [dependencies]
-eventsrc-client = { workspace = true }
-eventsrc-core = { workspace = true }
+bytes = { workspace = true }
+futures-core = { workspace = true }
+memchr = "2"
+pin-project-lite = "0.2"
+
+[dev-dependencies]
+futures-util = { workspace = true }

@@ -1,76 +1,45 @@
-//! `eventsrc` is the small public facade for this workspace.
+//! Transport-agnostic SSE protocol parsing and stream adaptation.
 //!
-//! The crate keeps two SSE consumption modes explicit:
+//! This crate exposes only normalized events, protocol frames, and stream adapters.
+//! Raw line parsing and event-building state remain internal implementation details.
 //!
-//! - [`oneshot::EventSource`] for one-shot API streaming
-//! - [`replayable::EventSource`] for reconnecting request replay
+//! # Event-Only Consumption
 //!
-//! For lower-level protocol access, use the re-exported `eventsrc-core` types
-//! such as [`EventStream`] and [`FrameStream`].
+//! ```no_run
+//! use std::convert::Infallible;
 //!
-//! # One-Shot Mode
+//! use bytes::Bytes;
+//! use eventsrc::EventStream;
+//! use futures_util::{StreamExt, stream};
 //!
-//! The facade re-exports mode APIs, but does not directly depend on `reqwest`.
-//! These examples are illustrative; compile-checked reqwest examples live in
-//! `eventsrc-client`.
+//! # async fn demo() -> Result<(), eventsrc::StreamError<Infallible>> {
+//! let chunks = stream::iter([Ok::<Bytes, Infallible>(Bytes::from_static(b"data: hello\n\n"))]);
+//! let mut stream = EventStream::new(chunks);
 //!
-//! ```ignore
-//! use eventsrc::oneshot::EventSourceExt as _;
-//! use futures_util::StreamExt;
-//!
-//! #[tokio::main]
-//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let response = reqwest::Client::new()
-//!         .get("https://example.com/v1/stream")
-//!         .send()
-//!         .await?;
-//!
-//!     let mut stream = response.event_source()?;
-//!
-//!     while let Some(event) = stream.next().await {
-//!         let event = event?;
-//!         println!("{}", event.data());
-//!     }
-//!
-//!     Ok(())
-//! }
+//! let event = stream.next().await.unwrap()?;
+//! assert_eq!(event.event(), "message");
+//! assert_eq!(event.data(), "hello");
+//! assert_eq!(event.id(), "");
+//! # Ok(())
+//! # }
 //! ```
-//!
-//! # Reconnecting Mode
-//!
-//! ```ignore
-//! use eventsrc::replayable::{ConstantBackoff, EventSourceExt as _};
-//! use futures_util::StreamExt;
-//! use std::time::Duration;
-//!
-//! #[tokio::main]
-//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let mut stream = reqwest::Client::new()
-//!         .get("https://example.com/events")
-//!         .event_source()?
-//!         .with_retry_policy(ConstantBackoff::new(Duration::from_secs(1)));
-//!
-//!     while let Some(event) = stream.next().await {
-//!         let event = event?;
-//!         println!("{}", event.data());
-//!     }
-//!
-//!     Ok(())
-//! }
-//! ```
-//!
-//! # Retry Policies
-//!
-//! Replayable mode accepts any [`replayable::RetryPolicy`] implementation.
-//! The facade re-exports three built-in choices:
-//!
-//! - [`replayable::ConstantBackoff`] for a fixed delay between reconnects
-//! - [`replayable::ExponentialBackoff`] for increasing delays after failures
-//! - [`replayable::NeverRetry`] to disable reconnect entirely
 
+#![no_std]
 #![deny(unused_imports)]
 #![deny(missing_docs)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-pub use eventsrc_client as client;
-pub use eventsrc_core::*;
+extern crate alloc;
+
+#[cfg(test)]
+extern crate std;
+
+mod builder;
+mod error;
+mod event;
+mod parser;
+mod stream;
+
+pub use error::{ProtocolError, StreamError};
+pub use event::{Event, Frame};
+pub use stream::{EventStream, EventStreamExt, FrameStream, FrameStreamExt};
