@@ -5,7 +5,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use eventsrc_core::{Event, EventStream};
+use eventsrc::{Event, EventStream};
 use futures_core::stream::{LocalBoxStream, Stream};
 
 use crate::error::Error;

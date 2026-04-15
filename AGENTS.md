@@ -4,8 +4,7 @@
 
 This project is a Rust SSE/EventSource client library with:
 
-- eventsrc (facade)
-- eventsrc-core (protocol)
+- eventsrc (protocol)
 - eventsrc-client (client layer with reqwest adapter)
 
 Source of truth:
@@ -18,7 +17,7 @@ Source of truth:
 ## Core rules
 
 - NEVER collapse the oneshot and replayable EventSource modes
-- eventsrc-core must NOT depend on reqwest
+- eventsrc must NOT depend on reqwest
 - reqwest is the only backend adapter in v0.1
 - No server-side SSE
 - No extra transports
@@ -27,7 +26,6 @@ Source of truth:
 
 ## Architecture constraints
 
-- facade = re-export only
 - core = protocol / parser / stream
 - client = oneshot / replayable / adapter boundary / reconnect
 

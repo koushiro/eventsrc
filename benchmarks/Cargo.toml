@@ -9,7 +9,7 @@ publish = false
 bytes = "1"
 criterion = "0.8"
 eventsource-stream = "0.2"
-eventsrc-core = { workspace = true }
+eventsrc = { workspace = true }
 futures-util = "0.3"
 http = "1"
 sseer = { version = "0.2", features = ["std"] }

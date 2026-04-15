@@ -10,7 +10,7 @@ The client layer is responsible for:
 - adapting accepted byte streams into SSE event streams
 - handling reconnect, request replay, and `Last-Event-ID` propagation
 - keeping HTTP-client-specific logic in backend adapters
-- remaining separate from protocol parsing in `eventsrc-core`
+- remaining separate from protocol parsing in `eventsrc`
 
 This client layer is **not** responsible for:
 
@@ -24,7 +24,7 @@ This client layer is **not** responsible for:
 
 ## Relationship to Core
 
-`eventsrc-core` remains the protocol crate.
+`eventsrc` remains the protocol crate.
 
 Conceptually:
 
@@ -33,12 +33,12 @@ HTTP client / backend adapter
     ↓
 eventsrc-client
     ↓
-eventsrc-core
+eventsrc
 ```
 
 The split is:
 
-- `eventsrc-core`
+- `eventsrc`
   - bytes-to-frame parsing
   - bytes-to-event projection
   - protocol semantics for `event`, `data`, `id`, and `retry`
@@ -114,7 +114,7 @@ Current error categories are:
 - `InvalidResponse`
 - `Protocol`
 
-This is a client-layer error model. It is intentionally separate from `eventsrc-core`'s `ProtocolError` and `StreamError<E>`.
+This is a client-layer error model. It is intentionally separate from `eventsrc`'s `ProtocolError` and `StreamError<E>`.
 
 ### `oneshot`
 
@@ -126,7 +126,7 @@ This is a client-layer error model. It is intentionally separate from `eventsrc-
 Responsibilities:
 
 - accept a body byte stream
-- project body bytes into `Event` values through `eventsrc-core::EventStream`
+- project body bytes into `Event` values through `eventsrc::EventStream`
 - surface client-layer errors
 
 Non-responsibilities:
@@ -197,7 +197,7 @@ This avoids pushing HTTP response metadata into the SSE public API surface.
 
 ## One-Shot Design
 
-`oneshot::EventSource` is a thin client wrapper around `eventsrc-core::EventStream`.
+`oneshot::EventSource` is a thin client wrapper around `eventsrc::EventStream`.
 
 Conceptually:
 
@@ -338,11 +338,11 @@ Current category mapping is:
   - invalid HTTP response head
   - invalid response body stream
 - `Protocol`
-  - SSE protocol violations surfaced from `eventsrc-core`
+  - SSE protocol violations surfaced from `eventsrc`
 
 This error model belongs to the client crate only.
 
-`eventsrc-core` should keep its own typed protocol and stream error model.
+`eventsrc` should keep its own typed protocol and stream error model.
 
 ---
 
@@ -391,13 +391,13 @@ The following remain out of scope for the current client crate:
 - server-side SSE
 - non-HTTP transports
 - collapsing one-shot and replayable into one type
-- moving protocol parsing out of `eventsrc-core`
+- moving protocol parsing out of `eventsrc`
 
 ---
 
 ## Summary
 
-The client crate is designed as a thin, mode-oriented layer above `eventsrc-core`.
+The client crate is designed as a thin, mode-oriented layer above `eventsrc`.
 
 Its core design principles are:
 
@@ -410,7 +410,6 @@ Its core design principles are:
 This gives the workspace a stable split:
 
 ```text
-eventsrc-core   = protocol
+eventsrc        = protocol
 eventsrc-client = client modes + adapter boundary
-eventsrc        = facade re-export
 ```
