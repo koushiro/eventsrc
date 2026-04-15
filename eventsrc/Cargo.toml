@@ -20,7 +20,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 bytes = { workspace = true }
 futures-core = { workspace = true }
 memchr = "2"
-pin-project-lite = { workspace = true }
+pin-project-lite = "0.2"
 
 [dev-dependencies]
 futures-util = { workspace = true }
