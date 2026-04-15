@@ -19,4 +19,4 @@ futures-core = "0.3"
 futures-util = "0.3"
 
 eventsrc = { path = "eventsrc", version = "0.0.2" }
-eventsrc-client = { path = "eventsrc-client", version = "0.0.1", default-features = false }
+eventsrc-client = { path = "eventsrc-client", version = "0.0.2", default-features = false }
