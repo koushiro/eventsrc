@@ -52,6 +52,17 @@ fn multiline(c: &mut Criterion) {
             );
 
             group.bench_with_input(
+                format!("sse-core: (events-{events}, {})", chunk.name),
+                &(payload.as_slice(), chunk.chunk_size),
+                |b, (payload, chunk_size)| {
+                    b.iter(|| {
+                        let chunks = setup::payload_chunks(payload, *chunk_size);
+                        black_box(runtime.block_on(setup::consume_sse_core(chunks)))
+                    });
+                },
+            );
+
+            group.bench_with_input(
                 format!("eventsrc: (events-{events}, {})", chunk.name),
                 &(payload.as_slice(), chunk.chunk_size),
                 |b, (payload, chunk_size)| {

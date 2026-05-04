@@ -64,6 +64,28 @@ pub async fn consume_sseer(chunks: Vec<Bytes>) -> ConsumeStats {
     stats
 }
 
+pub async fn consume_sse_core(chunks: Vec<Bytes>) -> ConsumeStats {
+    let stream = stream::iter(chunks.into_iter().map(Ok::<_, Infallible>));
+
+    let mut stream = sse_core::SseStream::new(stream);
+
+    let mut stats = ConsumeStats { events: 0, score: 0 };
+
+    while let Some(event) = stream.next().await {
+        let event = event.expect("sse-core parse failed");
+
+        let sse_core::SseEvent::Message(event) = event else {
+            continue;
+        };
+
+        stats.events += 1;
+        stats.score += event.data.len() + event.event.len();
+        stats.score += event.last_event_id.as_deref().map_or(0, str::len);
+    }
+
+    stats
+}
+
 pub async fn consume_eventsrc(chunks: Vec<Bytes>) -> ConsumeStats {
     let stream = stream::iter(chunks.into_iter().map(Ok::<_, Infallible>));
 
@@ -114,6 +136,7 @@ async fn all_benchmark_adapters_agree_on_event_counts_and_scores() {
 
             let eventsrc = consume_eventsrc(chunks.clone()).await;
             let eventsource_stream = consume_eventsource_stream(chunks.clone()).await;
+            let sse_core = consume_sse_core(chunks.clone()).await;
             let sseer = consume_sseer(chunks.clone()).await;
 
             assert_eq!(
@@ -121,6 +144,7 @@ async fn all_benchmark_adapters_agree_on_event_counts_and_scores() {
                 "eventsource-stream mismatch for {}",
                 case.name
             );
+            assert_eq!(sse_core, eventsrc, "sse-core mismatch for {}", case.name);
             assert_eq!(sseer, eventsrc, "sseer mismatch for {}", case.name);
         }
     }

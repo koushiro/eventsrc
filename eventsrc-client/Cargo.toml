@@ -5,6 +5,7 @@ authors = ["Qinxuan Chen <https://github.com/koushiro>"]
 description = "One-shot and replayable SSE / EventSource client for Rust."
 keywords = ["sse", "eventsource", "stream", "client"]
 documentation = "https://docs.rs/eventsrc-client"
+readme = "../README.md"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
