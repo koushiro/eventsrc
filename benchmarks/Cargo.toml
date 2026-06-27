@@ -13,7 +13,7 @@ eventsrc = { workspace = true }
 futures-util = { workspace = true }
 http = "1"
 sse-core = { version = "0.2", features = ["stream"] }
-sseer = { version = "0.2", features = ["std"] }
+sseer = { version = "0.3", features = ["std"] }
 tokio = { version = "1", features = ["macros", "rt", "time"] }
 
 [[bench]]
